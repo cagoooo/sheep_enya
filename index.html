@@ -1,0 +1,157 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>class codes</title>
+<style>
+  body { font-family: Arial, sans-serif; background-color: #fff9c4; padding: 20px; }
+  input, select, button { margin: 5px; padding: 5px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  h1 { color: #555; }
+</style>
+</head>
+<body>
+
+<h1>class codes</h1>
+
+<!-- 新增學生 -->
+<label>新增學生：</label>
+<input type="text" id="newStudent" placeholder="輸入學生姓名">
+<button onclick="addStudent()">新增</button>
+
+<br><br>
+
+<!-- 選取學生 -->
+<label>選取學生：</label>
+<select id="studentSelect"></select>
+
+<br>
+
+<!-- 加/扣點 -->
+<button onclick="modifyPoint(1)">加點 (+1)</button>
+<button onclick="modifyPoint(-1)">扣點 (-1)</button>
+
+<!-- 警告 -->
+<button onclick="modifyWarning(1)">新增警告</button>
+<button onclick="modifyWarning(-1)">刪除警告</button>
+
+<!-- 兌換獎品 -->
+<button onclick="redeem('ice')">兌換冰棒 (50點)</button>
+<button onclick="redeem('drink')">兌換飲料 (150點)</button>
+
+<!-- 請假 & 沒跑步 -->
+<br>
+<label>請假類型：</label>
+<select id="leaveType">
+  <option value="病假">病假</option>
+  <option value="事假">事假</option>
+  <option value="其他">其他</option>
+</select>
+<button onclick="addLeave()">新增請假</button>
+<button onclick="missRunning()">沒跑步</button>
+
+<!-- 學生表格 -->
+<table>
+  <thead>
+    <tr>
+      <th>姓名</th>
+      <th>點數</th>
+      <th>警告</th>
+      <th>請假紀錄</th>
+      <th>沒跑步紀錄</th>
+    </tr>
+  </thead>
+  <tbody id="studentTable"></tbody>
+</table>
+
+<script>
+let students = [];
+
+// 更新選單與表格
+function updateUI() {
+  const select = document.getElementById('studentSelect');
+  select.innerHTML = '';
+  students.forEach((s,i)=>{
+    const option = document.createElement('option');
+    option.value = i;
+    option.text = s.name;
+    select.add(option);
+  });
+
+  const table = document.getElementById('studentTable');
+  table.innerHTML = '';
+  students.forEach(s=>{
+    const leave = s.leave.map(l=>`${l.date}(${l.type})`).join(', ');
+    const miss = s.miss.map(d=>d).join(', ');
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${s.name}</td><td>${s.points}</td><td>${s.warning}</td><td>${leave}</td><td>${miss}</td>`;
+    table.appendChild(row);
+  });
+}
+
+// 新增學生
+function addStudent() {
+  const name = document.getElementById('newStudent').value.trim();
+  if(!name){ alert('請輸入學生姓名'); return; }
+  students.push({name:name, points:0, warning:0, leave:[], miss:[]});
+  document.getElementById('newStudent').value='';
+  updateUI();
+}
+
+// 加/扣點
+function modifyPoint(num){
+  const idx = document.getElementById('studentSelect').value;
+  if(idx==='') return;
+  students[idx].points += num;
+  updateUI();
+}
+
+// 警告
+function modifyWarning(num){
+  const idx = document.getElementById('studentSelect').value;
+  if(idx==='') return;
+  students[idx].warning = Math.max(0, students[idx].warning + num);
+  updateUI();
+}
+
+// 兌換獎品
+function redeem(item){
+  const idx = document.getElementById('studentSelect').value;
+  if(idx==='') return;
+  let cost = (item==='ice')?50:150;
+  if(students[idx].points>=cost){
+    if(confirm(`確定兌換${item==='ice'?'冰棒':'飲料'}嗎？將扣 ${cost} 點`)){
+      students[idx].points -= cost;
+      alert(`${students[idx].name} 已兌換${item==='ice'?'冰棒':'飲料'}！`);
+      updateUI();
+    }
+  }else{
+    alert('點數不足，無法兌換');
+  }
+}
+
+// 請假
+function addLeave(){
+  const idx = document.getElementById('studentSelect').value;
+  if(idx==='') return;
+  const type = document.getElementById('leaveType').value;
+  const date = new Date().toLocaleDateString();
+  students[idx].leave.push({date:date, type:type});
+  alert(`${students[idx].name} 已新增請假紀錄`);
+  updateUI();
+}
+
+// 沒跑步
+function missRunning(){
+  const idx = document.getElementById('studentSelect').value;
+  if(idx==='') return;
+  const date = new Date().toLocaleDateString();
+  students[idx].miss.push(date);
+  alert(`${students[idx].name} 記錄沒跑步`);
+  updateUI();
+}
+</script>
+
+</body>
+</html>
