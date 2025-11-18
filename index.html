@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- 確保 RWD (響應式網頁設計) 正常運作 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>優化版 - 班級點數紀錄 (含刪除功能)</title>
+    <title>優化版 - 班級點數紀錄 (安全修正)</title>
     <!-- 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -251,7 +251,7 @@
                 students.forEach((s, i) => {
                     const option = document.createElement('option');
                     option.value = i;
-                    option.text = s.name;
+                    option.text = s.name; // 這裡使用 text，是安全的
                     select.add(option);
                 });
                 // 如果之前選中的索引仍然有效，則恢復選取
@@ -260,7 +260,7 @@
                 }
             }
 
-            // 2. 更新表格
+            // 2. 更新表格 (*** 安全修正 ***)
             const table = document.getElementById('studentTable');
             table.innerHTML = '';
             if (students.length === 0) {
@@ -274,22 +274,50 @@
                     const row = table.insertRow();
                     row.className = 'hover:bg-gray-50 transition-colors';
 
-                    // Checkbox 欄位
-                    row.innerHTML = `
-                        <td class="px-4 py-4 text-center">
-                            <input type="checkbox" class="student-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" data-index="${i}" onchange="updateBatchDeleteBtnState()">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(s.name)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-semibold ${s.points < 0 ? 'text-red-600' : ''}">${s.points}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center ${s.warning > 0 ? 'text-red-600 font-bold' : ''}">${s.warning}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500 min-w-[150px]">${leave || '-'}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500 min-w-[150px]">${miss || '-'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                            <button onclick="confirmDeleteSingle(${i})" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors">
-                                刪除
-                            </button>
-                        </td>
-                    `;
+                    // Cell 0: Checkbox
+                    const cellCheckbox = row.insertCell();
+                    cellCheckbox.className = 'px-4 py-4 text-center';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'student-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500';
+                    checkbox.dataset.index = i;
+                    checkbox.onchange = updateBatchDeleteBtnState;
+                    cellCheckbox.appendChild(checkbox);
+
+                    // Cell 1: Name (使用 textContent 確保安全)
+                    const cellName = row.insertCell();
+                    cellName.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900';
+                    cellName.textContent = s.name; // 安全的寫法
+
+                    // Cell 2: Points
+                    const cellPoints = row.insertCell();
+                    cellPoints.className = `px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-semibold ${s.points < 0 ? 'text-red-600' : ''}`;
+                    cellPoints.textContent = s.points;
+
+                    // Cell 3: Warning
+                    const cellWarning = row.insertCell();
+                    cellWarning.className = `px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center ${s.warning > 0 ? 'text-red-600 font-bold' : ''}`;
+                    cellWarning.textContent = s.warning;
+
+                    // Cell 4: Leave (使用 textContent 確保安全)
+                    const cellLeave = row.insertCell();
+                    cellLeave.className = 'px-6 py-4 text-sm text-gray-500 min-w-[150px]';
+                    cellLeave.textContent = leave || '-'; // 安全的寫法
+
+                    // Cell 5: Miss (使用 textContent 確保安全)
+                    const cellMiss = row.insertCell();
+                    cellMiss.className = 'px-6 py-4 text-sm text-gray-500 min-w-[150px]';
+                    cellMiss.textContent = miss || '-'; // 安全的寫法
+
+                    // Cell 6: Actions (Button)
+                    const cellAction = row.insertCell();
+                    cellAction.className = 'px-6 py-4 whitespace-nowrap text-center text-sm font-medium';
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors';
+                    deleteBtn.textContent = '刪除';
+                    // 使用箭頭函式來正確傳遞索引 i
+                    deleteBtn.onclick = () => confirmDeleteSingle(i); 
+                    cellAction.appendChild(deleteBtn);
                 });
             }
 
@@ -298,15 +326,7 @@
             updateBatchDeleteBtnState();
         }
 
-        // 簡單的 HTML 轉義防止 XSS
-        function escapeHtml(unsafe) {
-            return unsafe
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
+        // (已移除 escapeHtml 函式，因為不再需要)
 
         // --- 新增/刪除功能 ---
 
@@ -317,6 +337,7 @@
                 showToast('請輸入學生姓名', true);
                 return;
             }
+            // 這裡不需要檢查 XSS，因為我們在渲染時已經處理了
             if (students.some(s => s.name === name)) {
                 showToast(`學生 "${name}" 已經存在`, true);
                 return;
@@ -329,6 +350,9 @@
 
         // 單一刪除確認
         function confirmDeleteSingle(index) {
+            // 檢查索引是否有效 (避免在快速點擊或資料不同步時出錯)
+            if (!students[index]) return; 
+            
             const student = students[index];
             showConfirm(`確定要刪除學生「${student.name}」嗎？此操作無法復原。`, () => {
                 students.splice(index, 1);
@@ -383,7 +407,7 @@
         // --- 原有的操作功能 ---
         function modifyPoint(num) {
             const idx = document.getElementById('studentSelect').value;
-            if (idx === '' || students.length === 0) return showToast('請先選取一位學生', true);
+            if (idx === '' || students.length === 0 || !students[idx]) return showToast('請先選取一位學生', true);
             students[idx].points += num;
             showToast(`${students[idx].name} ${num > 0 ? '加點' : '扣點'}成功`);
             saveAndUpate();
@@ -391,7 +415,7 @@
 
         function modifyWarning(num) {
             const idx = document.getElementById('studentSelect').value;
-            if (idx === '' || students.length === 0) return showToast('請先選取一位學生', true);
+            if (idx === '' || students.length === 0 || !students[idx]) return showToast('請先選取一位學生', true);
             students[idx].warning = Math.max(0, students[idx].warning + num);
             showToast(`${students[idx].name} ${num > 0 ? '新增警告' : '刪除警告'}成功`);
             saveAndUpate();
@@ -399,7 +423,7 @@
 
         function redeem(item) {
             const idx = document.getElementById('studentSelect').value;
-            if (idx === '' || students.length === 0) return showToast('請先選取一位學生', true);
+            if (idx === '' || students.length === 0 || !students[idx]) return showToast('請先選取一位學生', true);
             let cost = (item === 'ice') ? 50 : 150;
             let itemName = (item === 'ice') ? '冰棒' : '飲料';
             if (students[idx].points >= cost) {
@@ -415,7 +439,7 @@
 
         function addLeave() {
             const idx = document.getElementById('studentSelect').value;
-            if (idx === '' || students.length === 0) return showToast('請先選取一位學生', true);
+            if (idx === '' || students.length === 0 || !students[idx]) return showToast('請先選取一位學生', true);
             const type = document.getElementById('leaveType').value;
             const date = new Date().toLocaleDateString();
             students[idx].leave.push({ date: date, type: type });
@@ -425,7 +449,7 @@
 
         function missRunning() {
             const idx = document.getElementById('studentSelect').value;
-            if (idx === '' || students.length === 0) return showToast('請先選取一位學生', true);
+            if (idx === '' || students.length === 0 || !students[idx]) return showToast('請先選取一位學生', true);
             const date = new Date().toLocaleDateString();
             students[idx].miss.push(date);
             showToast(`${students[idx].name} 記錄沒跑步`);
