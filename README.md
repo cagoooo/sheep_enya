@@ -1,4 +1,6 @@
 # sheep_enya
+> 🗂️ **一次性專案**：單次建立的主題頁，內容不再變動，因此不做版本管理。
+
 由 EZPage 建立的網站 - Deployed by EZPage
 
 ---
